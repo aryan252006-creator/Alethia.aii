@@ -25,6 +25,13 @@ const userSchema = new Schema(
             enum: ["founder", "investor", "admin"],
             default: "founder" 
         },
+        companyName: { 
+            type: String,
+            trim: true,
+            default: "" 
+            // Note: We don't make it 'required: true' in the schema 
+            // because we handle that logic in the controller (it depends on the role).
+        },
         password: {
             type: String,
             required: [true, 'Password is required']
@@ -60,7 +67,7 @@ userSchema.methods.generateAccessToken = function(){
             _id: this._id,               //since already in database, we can use this._id
             email: this.email,
             username: this.username,
-            fullName: this.fullName                 // Identifies the user
+            role: this.role                
         },
         process.env.ACCESS_TOKEN_SECRET,
         {
