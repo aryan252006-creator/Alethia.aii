@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:latest
+    image: mongo:5.0
     container_name: turing_mongodb
     ports:
       - "${MONGO_HOST_PORT:-27017}:27017"
@@ -50,6 +50,7 @@ services:
     build:
       context: ./ML
       dockerfile: Dockerfile
+    platform: linux/amd64
     container_name: turing_ml
     volumes:
       - ./ML:/app
