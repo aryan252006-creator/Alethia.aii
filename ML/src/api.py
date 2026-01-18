@@ -23,9 +23,6 @@ async def lifespan(app: FastAPI):
 
         if os.path.exists(market_csv_path):
             market_df = pd.read_csv(market_csv_path)
-            # Group by ticker to make lookup easier or just keep raw
-            # For this task, we might need recent stats. 
-            # flexible logic: store user whole DF or indexed
             market_data = market_df
             print(f"Loaded market data from {market_csv_path}")
         else:
@@ -55,64 +52,71 @@ def get_prediction(ticker: str):
     # 1. Narratives
     narrative_info = narratives_data.get(ticker)
     if not narrative_info:
-        # If we don't have this ticker at all, return 404 or a default?
-        # Requirement says "Return a JSON object", probably best to 404 if invalid ticker
         raise HTTPException(status_code=404, detail=f"Ticker {ticker} not found in narratives")
 
     # 2. Market Data
-    # Filter for this ticker
     if isinstance(market_data, pd.DataFrame) and not market_data.empty:
         ticker_df = market_data[market_data['ticker'] == ticker]
     else:
         ticker_df = pd.DataFrame()
 
+    # Defaults
     reliability_score = 50.0
     regime = "Unknown"
+    regime_id = 2  # Default to Crisis/Unknown
+    prediction = 0.0
 
+    history = []
+    
     if not ticker_df.empty:
-        # Mock Logic for Reliability Score:
-        # Maybe use label or some volatility metric.
-        # User prompt: "calculate a simple mock score based on the volatility or label column"
-        
-        # specific logic: if label is 1 (growth), score higher?
-        # Or inverse to volatility.
-        # Let's take the last label
+        # Calculate Logic using the last row
         last_row = ticker_df.iloc[-1]
         
-        # Volatility is not directly a column in the csv output in generate_data.py but used to generate price
-        # We can re-calculate volatility or just use 'label'
-        # 'label': 1 if price > 100 else 0
+        # Get History (Last 30 entries)
+        # return list of dicts: [{'date': '...', 'price': ...}]
+        recent_df = ticker_df.tail(30)
+        history = recent_df[['date', 'price']].to_dict(orient='records')
         
-        # Let's simple mock: 
-        # Base score 75
-        # +10 if debt_ratio low (< 0.5)
-        # +10 if recent price positive (label=1)
-        
+        # Reliability Score Mock
         base_score = 70.0
         if last_row['debt_ratio'] < 0.5:
             base_score += 15.0
         if last_row['label'] == 1:
             base_score += 10.0
-            
         reliability_score = min(100.0, max(0.0, base_score))
         
-        # Regime
-        # If debt_ratio is high -> Volatile?
+        # Regime Logic
+        # 0: Stable, 1: Volatile, 2: Crisis
         if last_row['debt_ratio'] > 0.6:
             regime = "Volatile"
+            regime_id = 1
         elif last_row['label'] == 1:
             regime = "Stable Growth"
+            regime_id = 0
         else:
             regime = "Stable"
+            regime_id = 0
+            
+        # Prediction Logic
+        # Label 1 = Uptrend (Bullish), Label 0 = Downtrend (Bearish)
+        if last_row['label'] == 1:
+            prediction = 0.75 # strong buy signal mock
+        else:
+            prediction = -0.75 # strong sell signal mock
             
     else:
         # Fallback if no market data found but narrative exists
         reliability_score = 50.0
         regime = "No Data"
+        regime_id = 2
+        prediction = 0.0
 
     return {
         "reliability_score": reliability_score,
         "regime": regime,
+        "regime_id": regime_id,
+        "prediction": prediction,
+        "history": history,
         "narrative_summary": narrative_info.get("transcript", ""),
         "is_consistent": narrative_info.get("alignment_flag", False)
     }
