@@ -1,8 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import axios from "axios";
-import { AlertTriangle, ArrowLeft, CheckCircle, Brain, Activity, TrendingUp } from "lucide-react";
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AlertTriangle, ArrowLeft, CheckCircle, Brain, Activity, TrendingUp, Zap } from "lucide-react";
+import {
+    AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+    RadialBarChart, RadialBar, PolarAngleAxis
+} from 'recharts';
 
 export default function CompanyDetails() {
     const { ticker } = useParams();
@@ -19,7 +22,9 @@ export default function CompanyDetails() {
                 // Inject mock history if not present (for demo purposes)
                 const enrichedData = {
                     ...response.data,
-                    history: response.data.history || generateMockHistory(response.data.prediction)
+                    history: response.data.history || [], // Use real history
+                    // Ensure we have a numeric regime ID for the bar
+                    regime_id: typeof response.data.regime_id === 'number' ? response.data.regime_id : 0
                 };
 
                 setData(enrichedData);
@@ -36,23 +41,9 @@ export default function CompanyDetails() {
         }
     }, [ticker]);
 
-    // Helper to generate mock history based on trend
-    const generateMockHistory = (prediction) => {
-        const days = 20;
-        const data = [];
-        let price = 100; // Base price
-        const trend = prediction > 0 ? 1 : -1;
 
-        for (let i = 0; i < days; i++) {
-            const volatility = (Math.random() - 0.5) * 5;
-            price = price + (trend * 0.5) + volatility;
-            data.push({
-                date: `Day ${i + 1}`,
-                price: parseFloat(price.toFixed(2))
-            });
-        }
-        return data;
-    };
+
+
 
     if (loading) {
         return (
@@ -76,28 +67,38 @@ export default function CompanyDetails() {
         );
     }
 
-    // Calculate generic color based on score
-    const scoreColor = data.reliability_score >= 80 ? "text-green-400" :
-        data.reliability_score >= 50 ? "text-yellow-400" : "text-red-400";
-    const strokeColor = data.reliability_score >= 80 ? "#4ade80" : // green-400
+    // Determine colors
+    const scoreColor = data.reliability_score >= 80 ? "#4ade80" : // green-400
         data.reliability_score >= 50 ? "#facc15" : // yellow-400
             "#f87171"; // red-400
 
-    // Circular progress math
-    const radius = 60;
-    const circumference = 2 * Math.PI * radius;
-    const progress = data.reliability_score / 100;
-    const dashoffset = circumference * (1 - progress);
-
-    // Chart colors
     const isBullish = data.prediction > 0;
     const chartColor = isBullish ? "#4ade80" : "#f87171";
 
+    // Data for Radial Bar
+    const reliabilityData = [
+        {
+            name: 'Reliability',
+            value: data.reliability_score,
+            fill: scoreColor,
+        }
+    ];
+
+    // Regime Configuration
+    const regimes = [
+        { id: 0, label: "Stable", color: "from-green-500 to-emerald-600", shadow: "shadow-green-500/50" },
+        { id: 1, label: "Volatile", color: "from-yellow-500 to-orange-600", shadow: "shadow-yellow-500/50" },
+        { id: 2, label: "Crisis", color: "from-red-600 to-rose-700", shadow: "shadow-red-600/50" }
+    ];
+    // Fallback if data.regime_id is out of bounds
+    const currentRegimeId = (data.regime_id >= 0 && data.regime_id < regimes.length) ? data.regime_id : 0;
+
+
     return (
-        <div className="min-h-screen bg-gray-950 text-white p-6 md:p-12">
-            <div className="max-w-6xl mx-auto">
-                <Link to="/dashboard/investor" className="inline-flex items-center text-gray-400 hover:text-white mb-8 transition-colors">
-                    <ArrowLeft className="w-4 h-4 mr-2" /> Back to Dashboard
+        <div className="min-h-screen bg-gray-950 text-white p-6 md:p-12 pt-24">
+            <div className="max-w-6xl mx-auto relative">
+                <Link to="/dashboard/investor" className="absolute -top-16 left-0 inline-flex items-center text-gray-400 hover:text-white transition-colors bg-gray-900/50 px-4 py-2 rounded-lg border border-white/10 hover:bg-gray-800 backdrop-blur-sm shadow-lg">
+                    <ArrowLeft className="w-5 h-5 mr-2" /> Back to Dashboard
                 </Link>
 
                 <header className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -109,12 +110,6 @@ export default function CompanyDetails() {
                             <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-medium ring-1 ring-inset ring-indigo-500/20">
                                 AI Generated
                             </span>
-                            <span className={`px-3 py-1 rounded-full text-sm font-medium ring-1 ring-inset ${data.regime === "Stable" || data.regime === "Stable Growth"
-                                ? "bg-green-500/10 text-green-400 ring-green-500/20"
-                                : "bg-orange-500/10 text-orange-400 ring-orange-500/20"
-                                }`}>
-                                Regime: {data.regime}
-                            </span>
                         </div>
                     </div>
                 </header>
@@ -122,7 +117,7 @@ export default function CompanyDetails() {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Column 1: Financial Performance (Chart) */}
                     <div className="md:col-span-2">
-                        <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl h-full">
+                        <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl h-full flex flex-col">
                             <div className="flex items-center justify-between mb-6">
                                 <h3 className="text-lg font-medium text-gray-300">Projected Performance</h3>
                                 <div className={`flex items-center text-sm font-bold ${isBullish ? 'text-green-400' : 'text-red-400'}`}>
@@ -131,7 +126,7 @@ export default function CompanyDetails() {
                                 </div>
                             </div>
 
-                            <div className="h-80 w-full">
+                            <div className="h-80 w-full flex-grow">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <AreaChart data={data.history}>
                                         <defs>
@@ -162,46 +157,98 @@ export default function CompanyDetails() {
                         </div>
                     </div>
 
-                    {/* Column 2: Score */}
-                    <div className="md:col-span-1">
-                        <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl flex flex-col items-center justify-center h-full relative overflow-hidden">
+                    {/* Column 2: Right Side Stats (Reliability & Regime) */}
+                    <div className="md:col-span-1 space-y-6">
+
+                        {/* Reliability Score */}
+                        <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl flex flex-col items-center justify-center relative overflow-hidden h-64">
                             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
-
-                            <h3 className="text-lg font-medium text-gray-300 mb-6">Reliability Score</h3>
-
+                            <h3 className="text-lg font-medium text-gray-300 mb-4">Reliability Score</h3>
                             <div className="relative w-40 h-40 flex items-center justify-center">
-                                {/* Background Circle */}
-                                <svg className="w-full h-full transform -rotate-90">
-                                    <circle
-                                        cx="80"
-                                        cy="80"
-                                        r={radius}
-                                        stroke="currentColor"
-                                        strokeWidth="12"
-                                        fill="transparent"
-                                        className="text-gray-800"
-                                    />
-                                    <circle
-                                        cx="80"
-                                        cy="80"
-                                        r={radius}
-                                        stroke={strokeColor}
-                                        strokeWidth="12"
-                                        fill="transparent"
-                                        strokeDasharray={circumference}
-                                        strokeDashoffset={dashoffset}
-                                        strokeLinecap="round"
-                                        className="transition-all duration-1000 ease-out"
-                                    />
-                                </svg>
-                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                                    <span className={`text-4xl font-bold ${scoreColor}`}>
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <RadialBarChart
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius="70%"
+                                        outerRadius="100%"
+                                        barSize={10}
+                                        data={reliabilityData}
+                                        startAngle={90}
+                                        endAngle={-270}
+                                    >
+                                        <PolarAngleAxis
+                                            type="number"
+                                            domain={[0, 100]}
+                                            angleAxisId={0}
+                                            tick={false}
+                                        />
+                                        <RadialBar
+                                            background={{ fill: '#374151' }}
+                                            clockWise
+                                            dataKey="value"
+                                            cornerRadius={10}
+                                        />
+                                    </RadialBarChart>
+                                </ResponsiveContainer>
+                                <div className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none">
+                                    <span className="text-4xl font-bold" style={{ color: scoreColor }}>
                                         {Math.round(data.reliability_score)}
                                     </span>
                                     <span className="text-xs text-gray-500 uppercase tracking-wider mt-1">Score</span>
                                 </div>
                             </div>
                         </div>
+
+                        {/* Polished Market Regime Bar */}
+                        <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl relative overflow-hidden">
+                            <div className="flex items-center mb-4">
+                                <Zap className="w-5 h-5 text-indigo-400 mr-2" />
+                                <h3 className="text-lg font-medium text-gray-300">Market Regime</h3>
+                            </div>
+
+                            <div className="space-y-4">
+                                <div className="flex justify-between text-xs text-gray-400 uppercase tracking-wide px-1">
+                                    {regimes.map((regime) => (
+                                        <span
+                                            key={regime.id}
+                                            className={`${currentRegimeId === regime.id ? "text-white font-bold scale-110" : "opacity-60"} transition-all duration-300`}
+                                        >
+                                            {regime.label}
+                                        </span>
+                                    ))}
+                                </div>
+                                <div className="relative h-4 bg-gray-800 rounded-full overflow-hidden flex shadow-inner border border-gray-700">
+                                    {/* Background Segments */}
+                                    {regimes.map((regime, index) => (
+                                        <div key={regime.id} className="flex-1 border-r border-gray-900/50 last:border-0 relative">
+                                            {/* Active Indicator Glow */}
+                                            {currentRegimeId === index && (
+                                                <div className={`absolute inset-0 bg-gradient-to-r ${regime.color} animate-pulse opacity-20`}></div>
+                                            )}
+                                        </div>
+                                    ))}
+
+                                    {/* The Active Bar Overlay */}
+                                    <div
+                                        className={`absolute top-0 bottom-0 transition-all duration-700 ease-out bg-gradient-to-r shadow-lg ${regimes[currentRegimeId].color} ${regimes[currentRegimeId].shadow}`}
+                                        style={{
+                                            left: `${(currentRegimeId / regimes.length) * 100}%`,
+                                            width: `${100 / regimes.length}%`,
+                                            borderRadius: '9999px' // Rounded capsule
+                                        }}
+                                    >
+                                        {/* Internal Shine */}
+                                        <div className="absolute top-0 left-0 w-full h-[1px] bg-white opacity-40"></div>
+                                    </div>
+                                </div>
+                                <p className="text-xs text-gray-500 mt-2 text-center">
+                                    System detects <span className={`font-bold text-transparent bg-clip-text bg-gradient-to-r ${regimes[currentRegimeId].color}`}>
+                                        {regimes[currentRegimeId].label}
+                                    </span> conditions.
+                                </p>
+                            </div>
+                        </div>
+
                     </div>
 
                     {/* Column 3: Narrative & Alerts (Full Width) */}
