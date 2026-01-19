@@ -6,3 +6,4 @@ This repository contains the source code for the Turing PG Project.
 - `backend/`: Backend service
 - `frontend/`: Frontend application
 - `ml/`: Machine Learning models
+- `llm/`: RAG based chatbot implementation
