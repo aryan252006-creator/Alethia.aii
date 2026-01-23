@@ -73,20 +73,25 @@ class FinancialIntelligencePipeline(L.LightningModule):
         z_combined = torch.cat([z_numeric, z_text], dim=-1)
         prediction = self.predictor(z_combined).squeeze()
         
-        total_loss, task_loss, consis_loss = self.criterion(z_text, z_numeric, prediction, batch["target"])
+        # Use return prediction as primary task
+        total_loss, task_loss, consis_loss = self.criterion(
+            z_text, z_numeric, prediction, batch["target_return"]
+        )
         
         self.log("train/total_loss", total_loss)
         self.log("train/task_loss", task_loss)
         self.log("train/consis_loss", consis_loss)
+        self.log("train/mean_prediction", prediction.mean())
         
         return total_loss
 
     def validation_step(self, batch, batch_idx):
         outputs = self.forward(batch)
         
-        val_loss = F.mse_loss(outputs["prediction"].squeeze(), batch["target"])
+        val_loss = F.mse_loss(outputs["prediction"].squeeze(), batch["target_return"])
         self.log("val/loss", val_loss)
         self.log("val/reliability", outputs["reliability_score"].mean())
+        self.log("val/mean_prediction", outputs["prediction"].mean())
         
         # Collect embeddings for drift detection
         self.drift_monitoring_buffer.append(outputs["z_shared"].detach().cpu().numpy())

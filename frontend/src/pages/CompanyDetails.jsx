@@ -12,6 +12,7 @@ export default function CompanyDetails() {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    const [systemStatus, setSystemStatus] = useState("live"); // live, training, cache
 
     useEffect(() => {
         const fetchData = async () => {
@@ -28,9 +29,22 @@ export default function CompanyDetails() {
                 };
 
                 setData(enrichedData);
+                if (response.data.status === 'training') {
+                    setSystemStatus('training');
+                } else if (response.data.source === 'cache') {
+                    setSystemStatus('cache');
+                } else {
+                    setSystemStatus('live');
+                }
             } catch (err) {
-                console.error("Failed to fetch intelligence data", err);
-                setError("Failed to load intelligence data.");
+                // Handle 503 (Initializing or Retraining) -> show Retraining UI
+                if (err.response && (err.response.status === 503 || err.response.status === 202)) {
+                    setSystemStatus('training');
+                    // Note: We don't set error, so UI will fall through to 'loading' or 'training' view
+                } else {
+                    console.error("Failed to fetch intelligence data", err);
+                    setError("Failed to load intelligence data.");
+                }
             } finally {
                 setLoading(false);
             }
@@ -45,6 +59,34 @@ export default function CompanyDetails() {
 
 
 
+    // Auto-refresh when in training mode
+    useEffect(() => {
+        let interval;
+        if (systemStatus === 'training') {
+            interval = setInterval(() => {
+                // Re-fetch data to see if training finished
+                const fetchUpdate = async () => {
+                    try {
+                        const response = await axios.get(`http://localhost:8000/api/intelligence/${ticker}`);
+                        if (response.data.status !== 'training') {
+                            const enrichedData = {
+                                ...response.data,
+                                history: response.data.history || [],
+                                regime_id: typeof response.data.regime_id === 'number' ? response.data.regime_id : 0
+                            };
+                            setData(enrichedData);
+                            setSystemStatus(response.data.source === 'cache' ? 'cache' : 'live');
+                        }
+                    } catch (e) {
+                        // Ignore errors during poll
+                    }
+                };
+                fetchUpdate();
+            }, 5000); // Check every 5 seconds
+        }
+        return () => clearInterval(interval);
+    }, [systemStatus, ticker]);
+
     if (loading) {
         return (
             <div className="min-h-screen bg-gray-950 flex items-center justify-center text-white">
@@ -52,6 +94,42 @@ export default function CompanyDetails() {
                 Loading Intelligence...
             </div>
         );
+    }
+
+    // Training State View (Prioritized over error/data check for 503 case)
+    if (systemStatus === 'training') {
+        return (
+            <div className="min-h-screen bg-gray-950 text-white p-6 md:p-12 pt-24 flex flex-col items-center justify-center">
+                <div className="max-w-2xl w-full text-center space-y-8">
+                    <div className="relative mx-auto w-24 h-24">
+                        <Activity className="w-24 h-24 text-indigo-500 animate-pulse" />
+                        <div className="absolute inset-0 border-4 border-indigo-500/30 rounded-full animate-ping"></div>
+                    </div>
+
+                    <h1 className="text-3xl font-bold">AI Model Initializing</h1>
+                    <p className="text-xl text-gray-400">
+                        The system is synchronizing with the neural network. This may take a moment.
+                    </p>
+
+                    <div className="bg-gray-900 border border-white/10 rounded-xl p-6 text-left max-w-lg mx-auto">
+                        <h3 className="text-white font-medium mb-2 flex items-center">
+                            <Brain className="w-4 h-4 mr-2 text-indigo-400" /> Current Status
+                        </h3>
+                        <p className="text-gray-400 text-sm">
+                            Loading high-dimensional market tensors and calibrating FinBERT embeddings for {ticker}.
+                        </p>
+                        <div className="mt-4 w-full bg-gray-800 rounded-full h-2">
+                            <div className="bg-indigo-500 h-2 rounded-full animate-progress" style={{ width: '60%' }}></div>
+                        </div>
+                        <p className="text-xs text-center text-gray-500 mt-2">Auto-refreshing...</p>
+                    </div>
+
+                    <Link to="/dashboard/investor" className="inline-flex items-center text-indigo-400 hover:text-indigo-300 mt-8">
+                        <ArrowLeft className="w-4 h-4 mr-2" /> Return to Dashboard
+                    </Link>
+                </div>
+            </div>
+        )
     }
 
     if (error || !data) {
@@ -66,6 +144,7 @@ export default function CompanyDetails() {
             </div>
         );
     }
+
 
     // Determine colors
     const scoreColor = data.reliability_score >= 80 ? "#4ade80" : // green-400
@@ -110,6 +189,16 @@ export default function CompanyDetails() {
                             <span className="px-3 py-1 rounded-full bg-indigo-500/10 text-indigo-400 text-sm font-medium ring-1 ring-inset ring-indigo-500/20">
                                 AI Generated
                             </span>
+                            {systemStatus === 'training' && (
+                                <span className="px-3 py-1 rounded-full bg-yellow-500/10 text-yellow-400 text-sm font-medium ring-1 ring-inset ring-yellow-500/20 flex items-center">
+                                    <Activity className="w-4 h-4 mr-1 animate-pulse" /> Model Retraining
+                                </span>
+                            )}
+                            {systemStatus === 'cache' && (
+                                <span className="px-3 py-1 rounded-full bg-orange-500/10 text-orange-400 text-sm font-medium ring-1 ring-inset ring-orange-500/20 flex items-center">
+                                    <AlertTriangle className="w-4 h-4 mr-1" /> Using Cached Data
+                                </span>
+                            )}
                         </div>
                     </div>
                 </header>
@@ -163,7 +252,7 @@ export default function CompanyDetails() {
                         {/* Reliability Score */}
                         <div className="bg-gray-900 rounded-2xl p-6 border border-white/5 shadow-xl flex flex-col items-center justify-center relative overflow-hidden h-64">
                             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
-                            <h3 className="text-lg font-medium text-gray-300 mb-4">Reliability Score</h3>
+                            <h3 className="text-lg font-medium text-gray-300 mb-4">Trust Score</h3>
                             <div className="relative w-40 h-40 flex items-center justify-center">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <RadialBarChart
@@ -194,7 +283,7 @@ export default function CompanyDetails() {
                                     <span className="text-4xl font-bold" style={{ color: scoreColor }}>
                                         {Math.round(data.reliability_score)}
                                     </span>
-                                    <span className="text-xs text-gray-500 uppercase tracking-wider mt-1">Score</span>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider mt-1 text-center">Zhang et al. (2024)<br />Consistency</span>
                                 </div>
                             </div>
                         </div>
