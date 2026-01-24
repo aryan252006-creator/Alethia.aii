@@ -10,7 +10,6 @@ import {
 export default function CompanyDetails() {
     const { ticker } = useParams();
 
-    // --- Hardcoded Data for Frontend (Requested by User) ---
     const MOCK_FRONTEND_DATA = {
         "NVDA": {
             reliability_score: 92,

@@ -39,7 +39,7 @@ async def chat_endpoint(request: ChatRequest):
         # though the tools currently extract ticker from query usually.
         # But DiagnosticTool takes 'ticker' input. 
         # If the user provides ticker explicitly, we might want to mention it in the system prompt or query?
-        # The prompt says: Input: {"query": "Compare Alpha and Beta", "ticker": "ALPHA" (optional)}
+        # The prompt says: Input: {"query": "Compare AAPL and AMD", "ticker": "AAPL" (optional)}
         
         # We'll include the query as a HumanMessage.
         inputs = {
