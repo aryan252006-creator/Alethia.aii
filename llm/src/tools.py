@@ -4,10 +4,7 @@ import json
 from langchain.tools import tool
 from langchain_experimental.agents import create_pandas_dataframe_agent
 from langchain_groq import ChatGroq
-from langchain_community.vectorstores import FAISS
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain_core.documents import Document
-from typing import List
+from pydantic import BaseModel, Field
 
 # Paths
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -86,38 +83,48 @@ def diagnostic_tool(ticker: str) -> str:
 
 class DocumentRAGTool:
     def __init__(self):
-        self.vector_store = None
-        self.embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2") # Efficient CPU usage
-        self._initialize_index()
+        self.documents = []
+        self._load_documents()
 
-    def _initialize_index(self):
-        docs = []
-        
-        # Load narratives.json
+    def _load_documents(self):
+        """Load narratives from JSON into simple text documents."""
         if os.path.exists(JSON_PATH):
             with open(JSON_PATH, 'r') as f:
                 data = json.load(f)
                 for item in data:
                     content = f"Ticker: {item.get('ticker')}. Transcript: {item.get('transcript')}"
-                    docs.append(Document(page_content=content, metadata={"source": "narratives.json"}))
-        
-        # Logic to load PDFs would go here
-        # For this task, we assume they are in the data folder if any.
-        # pdf_files = [f for f in os.listdir(DATA_DIR) if f.endswith('.pdf')]
-        # ... load PDFs ...
-
-        if docs:
-            self.vector_store = FAISS.from_documents(docs, self.embeddings)
+                    self.documents.append({
+                        'content': content,
+                        'ticker': item.get('ticker')
+                    })
 
     def search(self, query: str) -> str:
         """
-        Search for relevant information in the documents (narratives and PDFs).
+        Simple keyword-based search for relevant information.
         """
-        if not self.vector_store:
+        if not self.documents:
             return "No documents indexed."
+        
+        query_lower = query.lower()
+        results = []
+        
+        for doc in self.documents:
+            score = 0
+            content_lower = doc['content'].lower()
+            for word in query_lower.split():
+                if len(word) > 3:
+                    score += content_lower.count(word)
             
-        results = self.vector_store.similarity_search(query, k=3)
-        return "\n\n".join([doc.page_content for doc in results])
+            if score > 0:
+                results.append((score, doc))
+        
+        results.sort(reverse=True, key=lambda x: x[0])
+        top_results = results[:3]
+        
+        if not top_results:
+            return "No relevant information found."
+        
+        return "\n\n".join([doc['content'] for _, doc in top_results])
 
 # Instantiate the RAG tool wrapper
 rag_tool_instance = DocumentRAGTool()

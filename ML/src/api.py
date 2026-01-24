@@ -484,6 +484,4 @@ def get_tickers():
                         "change": round((last_row['close'] - last_row['open']) / last_row['open'] * 100, 2),
                         "is_analyzed": True
                     })
-y
-
-    return summar
+    return summary

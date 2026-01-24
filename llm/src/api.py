@@ -16,7 +16,7 @@ load_dotenv(dotenv_path=env_path)
 load_dotenv()
 
 # Import the LangGraph app
-from agent import app as agent_app
+from src.agent import app as agent_app
 
 # Initialize FastAPI
 app = FastAPI(title="Aletheia AI Chatbot")

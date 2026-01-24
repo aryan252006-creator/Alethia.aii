@@ -1,6 +1,9 @@
 import express from "express"
 import cors from "cors"
 import cookieParser from "cookie-parser"
+import userRouter from './routes/user.routes.js'
+import chatRouter from './routes/chat.routes.js'
+import newsRouter from './routes/news.routes.js'
 
 
 const app = express()
@@ -40,12 +43,9 @@ app.use(express.static("public")) //to serve static files from the public direct
 app.use(cookieParser()) //to parse cookies from request headers
 
 
-import userRouter from './routes/user.routes.js'
-
-
 app.use("/api/v1/users", userRouter)
-import chatRouter from './routes/chat.routes.js'
 app.use("/api/v1/chat", chatRouter)
+app.use("/api/v1/news", newsRouter)
 
 
 

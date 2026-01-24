@@ -39,17 +39,19 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_URL: http://localhost:8000/api/v1
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+      target: build
     container_name: turing_frontend
+    command: npm run dev -- --host
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     ports:
-      - "${FRONTEND_PORT:-3001}:80"
-    env_file:
-      - .env
+      - "${FRONTEND_PORT:-3001}:5173"
     environment:
       - VITE_API_URL=http://localhost:8000/api/v1
       - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
+    env_file:
+      - .env
     depends_on:
       - backend
     networks:
@@ -65,6 +67,23 @@ services:
       - "8001:8001"
     volumes:
       - ./ml:/app
+    networks:
+      - turing_network
+
+  llm:
+    build:
+      context: ./llm
+      dockerfile: Dockerfile
+    container_name: turing_llm
+    ports:
+      - "8002:8002"
+    env_file:
+      - .env
+    environment:
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - PYTHON_SERVICE_URL=http://ml:8001
+    depends_on:
+      - ml
     networks:
       - turing_network
 

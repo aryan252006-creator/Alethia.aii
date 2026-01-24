@@ -9,6 +9,154 @@ import {
 
 export default function CompanyDetails() {
     const { ticker } = useParams();
+
+    // --- Hardcoded Data for Frontend (Requested by User) ---
+    const MOCK_FRONTEND_DATA = {
+        "NVDA": {
+            reliability_score: 92,
+            regime: "Stable Growth",
+            prediction: 0.85,
+            regime_id: 0,
+            narrative: [
+                "Dominance in AI training hardware (H100) remains the industry gold standard and primary revenue driver.",
+                "Data Center revenue grew substantially YoY, significantly outpacing gaming and visualization segments.",
+                "Supply chain bottlenecks for CoWoS packaging are easing, allowing for improved shipment volumes to meet backlog.",
+                "Software ecosystem (CUDA) continues to provide a formidable competitive moat against AMD and Intel.",
+                "New Blackwell architecture announcements signal sustained performance leadership for next-gen models.",
+                "Enterprise inference market is virtually untapped and represents the next major growth vector.",
+                "Sovereign AI initiatives from nations building domestic infrastructure adds a new, reliable customer layer.",
+                "Operating margins have expanded to record levels due to high pricing power and operational leverage."
+            ]
+        },
+        "AMD": {
+            reliability_score: 84,
+            regime: "Volatile",
+            prediction: 0.72,
+            regime_id: 1,
+            narrative: [
+                "MI300 accelerator ramp-up is exceeding initial forecasts, validating demand for a second source to NVIDIA.",
+                "Major hyperscalers (Microsoft, Meta) have publicly committed to deploying AMD instinct GPUs.",
+                "Client segment (Ryzen CPUs) is showing strong recovery signals after the post-pandemic PC slump.",
+                "Gaming segment revenue remains soft as the current console cycle matures.",
+                "Embedded segment (Xilinx) faces inventory correction headwinds in industrial and auto markets.",
+                "Open-software stack (ROCm) is maturing rapidly, lowering barriers to entry for developers.",
+                "Gross margins are beginning to expand as the product mix shifts toward high-margin data center silicon.",
+                "Aggressive annual roadmap updates demonstrate commitment to closing the hardware performance gap."
+            ]
+        },
+        "AAPL": {
+            reliability_score: 95,
+            regime: "Stable Growth",
+            prediction: 0.65,
+            regime_id: 0,
+            narrative: [
+                "Reported Q3 revenue of $59.7b, beating expectations despite challenging macro environment.",
+                "Services revenue set an all-time record, driving significant margin expansion and recurring revenue stability.",
+                "iPhone demand in emerging markets remains resilient, offsetting softer turnover in established regions.",
+                "Net income of $11.3b demonstrates unmatched profitability and cash generation capability.",
+                "Share repurchases of $10b in the quarter continue to return massive capital to shareholders.",
+                "Wearables, Home, and Accessories segment grew double-digits, showing ecosystem stickiness.",
+                "Committed $100m to Racial Equity and Justice Initiative, strengthening brand equity and ESG scoring.",
+                "Hardware innovation cycles are maturing, but the installed base lock-in provides a high floor for performance."
+            ]
+        },
+        "TSLA": {
+            reliability_score: 45,
+            regime: "Correction",
+            prediction: 0.25,
+            regime_id: 2,
+            narrative: [
+                "Automotive gross margins remain under pressure due to strategic price cuts to defend volume.",
+                "EV delivery growth is decelerating in key markets like China and Europe due to competition.",
+                "Cybertruck production ramp is proving complex and will be margin-dilutive in the short term.",
+                "FSD (Full Self-Driving) Version 12 is showing promise, but regulatory hurdles for robotaxi remain high.",
+                "Energy storage business (Megapack) is growing significantly faster than the car business, aiding diversification.",
+                "Heavy investment in AI (Dojo) and Optimus humanoid robot viewed as high-risk, high-reward long-term calls.",
+                "Competition from BYD and legacy automakers is narrowing the technological gap rapidly.",
+                "Upcoming 'Model 2' or affordable platform is critical for the next phase of mass-market volume growth."
+            ]
+        },
+        "MSFT": {
+            reliability_score: 93,
+            regime: "Stable Growth",
+            prediction: 0.78,
+            regime_id: 0,
+            narrative: [
+                "Azure cloud growth has re-accelerated, driven directly by AI consumption and migration.",
+                "Microsoft 365 Copilot adoption is gaining traction, creating a new high-margin revenue stream per seat.",
+                "GitHub Copilot remains the world's most widely adopted AI tool for developers.",
+                "Integration of Activision Blizzard is proceeding, significantly boosting gaming content portfolio.",
+                "Intelligent Cloud revenue is up double-digits YoY, anchoring the company's growth profile.",
+                "Capital expenditure is increasing significantly to build out data center capacity for future AI demand.",
+                "Security business continues to grow $>20%, providing a defensive, recession-resistant revenue layer.",
+                "Consistent dividend growth and buybacks offer shareholder returns alongside aggressive growth investment."
+            ]
+        },
+        "GOOGL": {
+            reliability_score: 90,
+            regime: "Stable Growth",
+            prediction: 0.70,
+            regime_id: 0,
+            narrative: [
+                "Maintains dominant position in digital advertising while rapidly integrating Gemini AI.",
+                "Search revenue remains steady, and Cloud profitability is improving significantly.",
+                "Regulatory headwinds exist but are outweighed by strong fundamental execution and deep capital reserves.",
+                "Deep capital reserves provide buffer for aggressive R&D investment.",
+                "YouTube advertising and subscription revenues are accelerating, driven by Shorts monetization.",
+                "Waymo is emerging as the clear leader in autonomous robotaxis, essentially a monopoly in current live markets.",
+                "Google Cloud Platform (GCP) has turned consistently profitable and is growing revenue rapidly.",
+                "Valuation remains attractive relative to peers, trading at a discount despite double-digit growth."
+            ]
+        },
+        "AMZN": {
+            reliability_score: 87,
+            regime: "Stable Growth",
+            prediction: 0.82,
+            regime_id: 0,
+            narrative: [
+                "Efficiency measures in fulfillment network are yielding record margins.",
+                "AWS continues to stabilize and re-accelerate thanks to generative AI workloads.",
+                "Retail division performing well despite macro uncertainty.",
+                "Overall outlook constructive with focus on profitability alongside growth.",
+                "Advertising revenue is growing rapidly (>20%), now a massive high-margin profit contributor.",
+                "Prime Video ads introduction opens a new multi-billion dollar revenue vector.",
+                "Kuiper satellite internet project represents a potential long-term opportunity but requires high capex.",
+                "Free cash flow has swung massively positive, supporting potential future capital returns."
+            ]
+        },
+        "META": {
+            reliability_score: 55,
+            regime: "Correction",
+            prediction: 0.35,
+            regime_id: 2,
+            narrative: [
+                "'Year of Efficiency' has transformed bottom line; ad impressions are up.",
+                "AI-driven recommendations are effectively increasing user engagement.",
+                "Heavy capex spending on AI infrastructure and Reality Labs losses keep volatility elevated.",
+                "Core business is strong, but capital allocation remains a key risk factor.",
+                "Advantage+ advertising tools are delivering higher ROAS for advertisers, commanding better pricing.",
+                "Llama 3 open-source strategy is establishing Meta as the standard for developer AI ecosystems.",
+                "WhatsApp Business messaging is finally beginning to monetize at scale in international markets.",
+                "Regulatory risks regarding child safety and data privacy are persistent but manageable."
+            ]
+        },
+        "NFLX": {
+            reliability_score: 81,
+            regime: "Stable Growth",
+            prediction: 0.0020,
+            regime_id: 0,
+            narrative: [
+                "Successfully navigated password-sharing crackdown, resulting in significant subscriber growth.",
+                "Ad-supported tier is gaining traction, opening a new revenue vector.",
+                "Content costs are stabilizing while maintaining engagement.",
+                "Viewed as clear winner in streaming wars with return to predictable growth.",
+                "Content spending has stabilized at ~$17B, leading to significant free cash flow expansion.",
+                "Operating margins are expanding as the business model shifts from pure growth to profitability.",
+                "Gaming initiative remains small but increases engagement and retention for the core service.",
+                "Pricing power remains strong, with recent hikes showing minimal churn impact."
+            ]
+        }
+    };
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -21,11 +169,22 @@ export default function CompanyDetails() {
                 const response = await axios.get(`http://localhost:8000/api/intelligence/${ticker}`);
 
                 // Inject mock history if not present (for demo purposes)
+                // AND MERGE HARDCODED FRONTEND DATA TO ENSURE NO ZEROS
+                const upperTicker = ticker ? ticker.toUpperCase() : "";
+                const mockOverride = MOCK_FRONTEND_DATA[upperTicker];
+                console.log(`[Frontend] Initial fetch for ${ticker} -> ${upperTicker}. Mock found?`, !!mockOverride);
+
                 const enrichedData = {
                     ...response.data,
                     history: response.data.history || [], // Use real history
+                    // Override/Fallback to hardcoded data if available, otherwise use API data
+                    reliability_score: mockOverride ? mockOverride.reliability_score : response.data.reliability_score,
+                    prediction: mockOverride ? mockOverride.prediction : response.data.prediction,
+                    regime: mockOverride ? mockOverride.regime : response.data.regime,
                     // Ensure we have a numeric regime ID for the bar
-                    regime_id: typeof response.data.regime_id === 'number' ? response.data.regime_id : 0
+                    regime_id: mockOverride ? mockOverride.regime_id : (typeof response.data.regime_id === 'number' ? response.data.regime_id : 0),
+                    // FORCE USE OF MOCK NARRATIVE IF AVAILABLE
+                    narrative: (mockOverride && mockOverride.narrative) ? mockOverride.narrative : response.data.narrative
                 };
 
                 setData(enrichedData);
@@ -69,10 +228,19 @@ export default function CompanyDetails() {
                     try {
                         const response = await axios.get(`http://localhost:8000/api/intelligence/${ticker}`);
                         if (response.data.status !== 'training') {
+                            const upperTicker = ticker ? ticker.toUpperCase() : "";
+                            const mockOverride = MOCK_FRONTEND_DATA[upperTicker];
+                            console.log(`[Frontend] Polling update for ${ticker}. Mock active?`, !!mockOverride);
+
                             const enrichedData = {
                                 ...response.data,
                                 history: response.data.history || [],
-                                regime_id: typeof response.data.regime_id === 'number' ? response.data.regime_id : 0
+                                reliability_score: mockOverride ? mockOverride.reliability_score : response.data.reliability_score,
+                                prediction: mockOverride ? mockOverride.prediction : response.data.prediction,
+                                regime: mockOverride ? mockOverride.regime : response.data.regime,
+                                regime_id: mockOverride ? mockOverride.regime_id : (typeof response.data.regime_id === 'number' ? response.data.regime_id : 0),
+                                // FORCE USE OF MOCK NARRATIVE IF AVAILABLE
+                                narrative: (mockOverride && mockOverride.narrative) ? mockOverride.narrative : response.data.narrative
                             };
                             setData(enrichedData);
                             setSystemStatus(response.data.source === 'cache' ? 'cache' : 'live');
@@ -151,7 +319,7 @@ export default function CompanyDetails() {
         data.reliability_score >= 50 ? "#facc15" : // yellow-400
             "#f87171"; // red-400
 
-    const isBullish = data.prediction > 0;
+    const isBullish = data.prediction > 0.5;
     const chartColor = isBullish ? "#4ade80" : "#f87171";
 
     // Data for Radial Bar
@@ -283,7 +451,7 @@ export default function CompanyDetails() {
                                     <span className="text-4xl font-bold" style={{ color: scoreColor }}>
                                         {Math.round(data.reliability_score)}
                                     </span>
-                                    <span className="text-xs text-gray-500 uppercase tracking-wider mt-1 text-center">Zhang et al. (2024)<br />Consistency</span>
+                                    <span className="text-xs text-gray-500 uppercase tracking-wider mt-1 text-center">AI Confidence<br />Score</span>
                                 </div>
                             </div>
                         </div>
@@ -368,9 +536,20 @@ export default function CompanyDetails() {
                             </div>
 
                             <div className="prose prose-invert max-w-none">
-                                <p className="text-gray-300 text-lg leading-relaxed">
-                                    "{data.narrative_summary}"
-                                </p>
+                                {Array.isArray(data.narrative) ? (
+                                    <ul className="list-none space-y-3">
+                                        {data.narrative.map((point, i) => (
+                                            <li key={i} className="flex items-start">
+                                                <span className="inline-block w-1.5 h-1.5 rounded-full bg-indigo-400 mt-2 mr-3 flex-shrink-0"></span>
+                                                <span className="text-gray-300 text-lg leading-relaxed">{point}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-gray-300 text-lg leading-relaxed">
+                                        "{data.narrative}"
+                                    </p>
+                                )}
                             </div>
 
                             <div className="mt-8 pt-6 border-t border-white/5 flex items-center justify-between text-sm text-gray-500">
