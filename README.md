@@ -91,6 +91,55 @@ The FIP is a multi-modal analysis engine that processes both numerical and textu
     *   It generates a 768-dimensional embedding of the latest market news, which is fused with the numerical data.
     *   *Result:* The model knows *that* the price dropped, and the news tells it *why* (e.g., "CEO Scandal" vs "Market Correction").
 
+### 💼 Portfolio Management System
+*Trade. Track. Optimize.*
+
+A comprehensive portfolio management platform with real-time P&L tracking and intelligent trading.
+
+**Core Capabilities:**
+*   **Portfolio Creation & Management**:
+    *   Create multiple portfolios with customizable initial capital
+    *   Soft-delete functionality preserves transaction history
+    *   One active portfolio per user for focused trading
+
+*   **Real-Time Trading Engine**:
+    *   **Market Order Execution**: Instant buy/sell orders at current market prices
+    *   **Validation Layer**: Automatic checks for sufficient funds and holdings
+    *   **Position Tracking**: Real-time updates to cash balance and holdings
+    *   **Average Cost Calculation**: Intelligent cost basis tracking across multiple purchases
+
+*   **Advanced P&L Calculations**:
+    *   **Unrealized P&L**: Live tracking of paper gains/losses on open positions
+    *   **Realized P&L**: Historical tracking of locked-in profits from closed positions
+    *   **Total Return %**: Overall portfolio performance vs initial capital
+    *   **Per-Holding Analytics**: Individual position P&L with percentage breakdowns
+
+*   **Holdings Dashboard**:
+    *   Live price updates from intelligence service
+    *   Portfolio allocation percentages
+    *   Unrealized gains/losses per position
+    *   Interactive buy/sell modals with real-time price validation
+
+**Technical Implementation:**
+```javascript
+// Example: Portfolio Summary Response
+{
+  "total_value": 110500.00,        // Cash + Holdings Value
+  "invested_amount": 25000.00,     // Total Cost Basis
+  "unrealized_pnl": 500.00,        // Current Paper Gains
+  "realized_pnl": 200.00,          // Locked-in Profits
+  "holdings_value": 25500.00,      // Current Holdings Value
+  "total_pnl": 700.00,             // Combined P&L
+  "total_return_pct": 10.50        // Overall Return %
+}
+```
+
+**Database Models:**
+*   **Portfolio**: User portfolios with capital tracking
+*   **Holding**: Current stock positions with average cost basis
+*   **Order**: Order history (market orders)
+*   **Transaction**: Immutable transaction ledger for audit trail
+
 ### 🛡️ Regime Detection & Anomaly Handling
 *Knowing the weather before you sail.*
 
@@ -108,20 +157,32 @@ Markets behave differently in different states. A strategy that works in a bull 
 *Premium Design. Instant Clarity.*
 
 The frontend is built to withstand the demands of active monitoring.
-*   **Drag-and-Drop Watchlist**: 
-    *   A two-column layout where users can drag specific stocks into an "Deep Analysis" zone to trigger the ML pipeline.
+*   **Market Overview**: 
+    *   Real-time market intelligence for all tracked stocks
+    *   AI-powered reliability scores and regime indicators
+    *   One-click access to detailed company analysis
+    
+*   **Portfolio Dashboard**:
+    *   Comprehensive portfolio summary with visual metrics
+    *   Tabbed interface: Holdings view and Market view
+    *   Real-time P&L tracking with color-coded indicators
+    *   Integrated buy/sell functionality with modal interfaces
+
 *   **Live Yahoo Finance Data**: 
     *   Prices, percentage changes, and volume data are streamed in real-time.
     *   We bridge the gap between "Live Data" (YFinance) and "Intelligence" (Our Python Backend) seamlessly.
+    
 *   **Rich Visualizations**: 
     *   **Interactive Price Charts**: Zoomable, pannable history charts using **Recharts**.
     *   **Trend overlays**: Visual indicators of the AI's predicted direction over the actual historical data.
+    *   **Allocation Charts**: Visual portfolio composition breakdowns
 
 ### 🤖 Aletheia Chat Assistant
 *Your 24/7 Analyst.*
 
 *   **Context-Aware**: The chatbot isn't just a generic LLM. It has access to the *context* of your current view. 
 *   **Integrated**: Accessible directly from the navbar, allowing you to ask questions like *"What does the Regime 'Volatile' imply for my portfolio?"* without leaving the dashboard.
+*   **Financial Domain Expertise**: Strictly focused on financial queries with intelligent context refusal
 
 ---
 
@@ -143,10 +204,40 @@ The frontend is built to withstand the demands of active monitoring.
 *   **Recharts**: Composable charting library.
 
 ### ⚙️ Backend & Infrastructure
-*   **Node.js & Express**: Backend API gateway.
+*   **Node.js & Express**: Backend API gateway with RESTful endpoints.
 *   **JWT & Google OAuth**: Secure, custom authentication with httpOnly cookie sessions and Google Sign-In support.
-*   **MongoDB Atlas**: scalable NoSQL database for user data.
+*   **MongoDB Atlas**: Scalable NoSQL database for user data, portfolios, and transaction history.
+*   **Mongoose**: ODM for MongoDB with schema validation and relationship management.
 *   **Docker**: Full-stack containerization for consistent deployment.
+*   **Redis**: Session management and caching layer.
+
+---
+
+## 🔌 API Endpoints
+
+### Authentication
+*   `POST /api/v1/auth/register` - User registration
+*   `POST /api/v1/auth/login` - User login with JWT
+*   `POST /api/v1/auth/google` - Google OAuth authentication
+*   `POST /api/v1/auth/logout` - User logout
+
+### Market Intelligence
+*   `GET /api/intelligence/tickers` - Get all available stocks with live prices
+*   `GET /api/intelligence/:ticker` - Get AI analysis for a specific stock
+*   `GET /api/v1/news/:ticker` - Get latest news for a ticker
+
+### Portfolio Management
+*   `POST /api/v1/portfolio` - Create a new portfolio
+*   `GET /api/v1/portfolio` - Get active portfolio with summary
+*   `DELETE /api/v1/portfolio` - Delete active portfolio
+*   `GET /api/v1/portfolio/holdings` - Get detailed holdings information
+
+### Trading
+*   `POST /api/v1/orders/market` - Place a market order (buy/sell)
+*   `GET /api/v1/orders` - Get order history
+
+### Holdings
+*   `GET /api/v1/holdings` - Get enriched holdings with current prices
 
 ---
 
@@ -185,7 +276,6 @@ The frontend is built to withstand the demands of active monitoring.
     ```bash
     docker-compose up --build
     ```
-    Access the application at `http://localhost:3001`.
 
 ---
 
@@ -193,9 +283,9 @@ The frontend is built to withstand the demands of active monitoring.
 
 | Name | Role |
 | :--- | :--- |
-| **Aryan Agarwal** | **Web Development**|
-| **Swastik Gupta** | **Web Development** |
-| **Saharsh Srivastava** | **Machine Learning & AI** |
+| **Aryan Agarwal** | **Frontend Development**|
+| **Swastik Gupta** | **Backend Development @ AI**|
+| **Saharsh Srivastava** | **Machine Learning**|
 
 ---
 
