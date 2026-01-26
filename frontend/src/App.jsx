@@ -7,6 +7,7 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import StartupDashboard from "./pages/dashboard/StartupDashboard";
 import InvestorDashboard from "./pages/dashboard/InvestorDashboard";
 import CompanyDetails from "./pages/CompanyDetails";
+import PortfolioDashboard from "./pages/portfolio/PortfolioDashboard";
 
 import PublicRoute from "./components/PublicRoute";
 
@@ -32,6 +33,7 @@ function App() {
           {/* Protected Investor Routes */}
           <Route element={<ProtectedRoute allowedRoles={["investor"]} />}>
             <Route path="/dashboard/investor" element={<InvestorDashboard />} />
+            <Route path="/portfolio" element={<PortfolioDashboard />} />
             <Route path="/company/:ticker" element={<CompanyDetails />} />
           </Route>
         </Route>

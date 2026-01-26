@@ -1,6 +1,9 @@
 import connectDB from './db/index.js';
 import { app } from './app.js'
 import intelligenceRouter from './routes/intelligenceRoutes.js'
+import portfolioRouter from './routes/portfolio.routes.js'
+import orderRouter from './routes/order.routes.js'
+import holdingRouter from './routes/holding.routes.js'
 import dotenv from "dotenv"
 dotenv.config({
     path: './.env'
@@ -54,4 +57,7 @@ connectDB()
     })
 
 app.use("/api/intelligence", intelligenceRouter);
+app.use("/api/v1/portfolio", portfolioRouter);
+app.use("/api/v1/orders", orderRouter);
+app.use("/api/v1/holdings", holdingRouter);
 

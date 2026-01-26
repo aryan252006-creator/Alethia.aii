@@ -1,6 +1,54 @@
 import axios from "axios";
 import { Intelligence } from "../models/intelligence.model.js";
 
+// --- Helper function to generate mock historical price data ---
+const generateMockHistory = (ticker, prediction) => {
+    const today = new Date();
+    const history = [];
+    const basePrice = {
+        "NVDA": 480,
+        "AMD": 180,
+        "AAPL": 185,
+        "TSLA": 240,
+        "MSFT": 420,
+        "GOOGL": 165,
+        "AMZN": 175,
+        "META": 485,
+        "NFLX": 630
+    }[ticker] || 100;
+
+    // Determine volatility based on prediction confidence
+    const dailyVolatility = Math.abs(prediction) > 0.003 ? 0.025 : 0.015;
+    const trendStrength = Math.abs(prediction) * 30; // Overall trend over 30 days
+
+    let currentPrice = basePrice;
+
+    // Generate 30 days of historical data with realistic random walk
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date(today);
+        date.setDate(date.getDate() - i);
+
+        // Random walk with drift (trend)
+        const drift = prediction > 0 ? trendStrength / 30 : -trendStrength / 30;
+        const randomShock = (Math.random() - 0.5) * 2 * dailyVolatility * currentPrice;
+        const momentum = (Math.random() - 0.5) * 0.01 * currentPrice; // Add momentum
+
+        // Update price with random walk
+        currentPrice = currentPrice + drift + randomShock + momentum;
+
+        // Prevent unrealistic drops (keep within bounds)
+        currentPrice = Math.max(currentPrice, basePrice * 0.75);
+        currentPrice = Math.min(currentPrice, basePrice * 1.25);
+
+        history.push({
+            date: date.toISOString().split('T')[0],
+            price: parseFloat(currentPrice.toFixed(2))
+        });
+    }
+
+    return history;
+};
+
 // --- Mock Data for Reliability Fallback (Requested by User) ---
 const MOCK_INTELLIGENCE_DATA = {
     "NVDA": { reliability_score: 88, regime: "Stable Growth", prediction: 0.0045, narrative_summary: "Strong AI demand continues to drive growth.", is_consistent: true },
@@ -52,8 +100,15 @@ export const getIntelligence = async (req, res) => {
             const cachedData = await Intelligence.findOne({ ticker: ticker.toUpperCase() });
 
             if (cachedData) {
+                const dataObj = cachedData.toObject();
+                // Ensure history is present, generate if missing
+                const history = dataObj.history && dataObj.history.length > 0
+                    ? dataObj.history
+                    : generateMockHistory(ticker.toUpperCase(), dataObj.prediction || 0);
+
                 return res.status(200).json({
-                    ...cachedData.toObject(),
+                    ...dataObj,
+                    history,
                     source: "cache",
                     system_status: "training",
                     message: "Data served from cache while model retrains."
@@ -74,6 +129,7 @@ export const getIntelligence = async (req, res) => {
                     prediction: mlData.prediction,
                     narrative_summary: mlData.narrative_summary,
                     is_consistent: mlData.is_consistent,
+                    history: mlData.history || [], // Store real history from ML
                     last_updated: new Date()
                 },
                 { upsert: true, new: true }
@@ -83,7 +139,12 @@ export const getIntelligence = async (req, res) => {
             // Continue serving data even if cache fails
         }
 
-        return res.status(200).json({ ...mlData, source: "live" });
+        // Use ML service history if available, otherwise generate mock as fallback
+        const history = (mlData.history && mlData.history.length > 0)
+            ? mlData.history
+            : generateMockHistory(ticker.toUpperCase(), mlData.prediction || 0);
+
+        return res.status(200).json({ ...mlData, history, source: "live" });
 
     } catch (error) {
         console.error("Error fetching intelligence data:", error.message);
@@ -92,6 +153,7 @@ export const getIntelligence = async (req, res) => {
         const mockRow = MOCK_INTELLIGENCE_DATA[ticker.toUpperCase()];
         if (mockRow) {
             console.log(`Serving MOCK data for ${ticker} due to ML failure.`);
+            const history = generateMockHistory(ticker.toUpperCase(), mockRow.prediction);
             // Also simulate saving this to DB so it persists
             try {
                 await Intelligence.findOneAndUpdate(
@@ -99,7 +161,7 @@ export const getIntelligence = async (req, res) => {
                     {
                         ...mockRow,
                         last_updated: new Date(),
-                        history: [] // Mock history not needed for now or can be added
+                        history
                     },
                     { upsert: true, new: true }
                 );
@@ -107,6 +169,7 @@ export const getIntelligence = async (req, res) => {
 
             return res.status(200).json({
                 ...mockRow,
+                history,
                 source: "static_analysis",
                 system_status: "online",
                 message: "Analysis provided by Aletheia Intelligence (Static Mode)"
@@ -118,8 +181,15 @@ export const getIntelligence = async (req, res) => {
             const cachedData = await Intelligence.findOne({ ticker: ticker.toUpperCase() });
             if (cachedData) {
                 console.log(`Serving cached data for ${ticker} due to ML service failure.`);
+                const dataObj = cachedData.toObject();
+                // Ensure history is present, generate if missing
+                const history = dataObj.history && dataObj.history.length > 0
+                    ? dataObj.history
+                    : generateMockHistory(ticker.toUpperCase(), dataObj.prediction || 0);
+
                 return res.status(200).json({
-                    ...cachedData.toObject(),
+                    ...dataObj,
+                    history,
                     source: "cache",
                     system_status: "error_fallback",
                     warning: "Live analysis unavailable. Showing last known data."
