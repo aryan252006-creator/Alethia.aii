@@ -44,6 +44,8 @@ export default function InvestorDashboard() {
 
                 if (!Array.isArray(response.data)) throw new Error("Invalid data format received.");
 
+                const PRIORITY_TICKERS = ["AAPL", "NVDA", "MSFT", "GOOGL", "GOOG", "AMZN", "AMD", "TSLA", "META", "NFLX"];
+
                 const mapped = response.data.map((t, idx) => ({
                     id: idx,
                     name: `${t.ticker} Corp`,
@@ -51,7 +53,16 @@ export default function InvestorDashboard() {
                     price: t.price,
                     change: t.change,
                     is_analyzed: t.is_analyzed
-                })).sort((a, b) => b.is_analyzed - a.is_analyzed || a.ticker.localeCompare(b.ticker));
+                })).sort((a, b) => {
+                    const isAPriority = PRIORITY_TICKERS.includes(a.ticker);
+                    const isBPriority = PRIORITY_TICKERS.includes(b.ticker);
+
+                    if (isAPriority && !isBPriority) return -1;
+                    if (!isAPriority && isBPriority) return 1;
+
+                    // Fallback to existing sort: Analyzed first, then Alpha
+                    return b.is_analyzed - a.is_analyzed || a.ticker.localeCompare(b.ticker);
+                });
 
                 setCompanies(mapped);
             } catch (err) {
