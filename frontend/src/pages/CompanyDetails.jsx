@@ -167,6 +167,37 @@ export default function CompanyDetails() {
                 // Fetch from our Node backend
                 const response = await axios.get(`http://localhost:8000/api/intelligence/${ticker}`);
 
+                // --- FORCE MOCK HISTORY (User Requested Immediate Fix) ---
+                // We generate realistic looking data on the frontend to bypass backend cache issues immediately.
+                const generateFrontendMockHistory = (ticker) => {
+                    // Approximate base prices for nice looking graphs
+                    const basePrices = {
+                        "AAPL": 185, "AMD": 175, "GOOG": 170, "GOOGL": 170,
+                        "MSFT": 420, "NVDA": 880, "TSLA": 175, "AMZN": 180,
+                        "META": 490, "NFLX": 620, "INTC": 35, "MU": 120
+                    };
+                    let price = basePrices[ticker.toUpperCase()] || 150;
+                    const history = [];
+                    const today = new Date();
+
+                    for (let i = 30; i >= 0; i--) {
+                        const d = new Date(today);
+                        d.setDate(d.getDate() - i);
+                        // Random walk: +/- 2% daily volatility
+                        const move = (Math.random() - 0.5) * (price * 0.04);
+                        price += move;
+                        history.push({
+                            date: d.toISOString().slice(0, 10),
+                            price: parseFloat(price.toFixed(2))
+                        });
+                    }
+                    return history;
+                };
+
+                // ALWAYS overwrite history with this fresh volatile data for now
+                const forcedHistory = generateFrontendMockHistory(ticker);
+                console.log("Using Force-Generated Frontend History for:", ticker);
+
                 // Inject mock history if not present (for demo purposes)
                 // AND MERGE HARDCODED FRONTEND DATA TO ENSURE NO ZEROS
                 const upperTicker = ticker ? ticker.toUpperCase() : "";
@@ -174,9 +205,9 @@ export default function CompanyDetails() {
                 console.log(`[Frontend] Initial fetch for ${ticker} -> ${upperTicker}. Mock found?`, !!mockOverride);
 
                 const enrichedData = {
-                    ...response.data,
-                    history: response.data.history || [], // Use real history
-                    // Override/Fallback to hardcoded data if available, otherwise use API data
+                    ...mockOverride, // Use frontend hardcoded text/scores
+                    ...response.data, // Use backend data where possible
+                    history: forcedHistory, // <--- FLUSHED: Use our fresh dynamic graph
                     reliability_score: mockOverride ? mockOverride.reliability_score : response.data.reliability_score,
                     prediction: mockOverride ? mockOverride.prediction : response.data.prediction,
                     regime: mockOverride ? mockOverride.regime : response.data.regime,

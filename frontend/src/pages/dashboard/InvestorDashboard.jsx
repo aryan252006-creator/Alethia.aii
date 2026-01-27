@@ -44,6 +44,8 @@ export default function InvestorDashboard() {
 
                 if (!Array.isArray(response.data)) throw new Error("Invalid data format received.");
 
+                const PRIORITY_TICKERS = ["AAPL", "NVDA", "MSFT", "GOOGL", "GOOG", "AMZN", "AMD", "TSLA", "META", "NFLX"];
+
                 const mapped = response.data.map((t, idx) => ({
                     id: idx,
                     name: `${t.ticker} Corp`,
@@ -51,7 +53,16 @@ export default function InvestorDashboard() {
                     price: t.price,
                     change: t.change,
                     is_analyzed: t.is_analyzed
-                })).sort((a, b) => b.is_analyzed - a.is_analyzed || a.ticker.localeCompare(b.ticker));
+                })).sort((a, b) => {
+                    const isAPriority = PRIORITY_TICKERS.includes(a.ticker);
+                    const isBPriority = PRIORITY_TICKERS.includes(b.ticker);
+
+                    if (isAPriority && !isBPriority) return -1;
+                    if (!isAPriority && isBPriority) return 1;
+
+                    // Fallback to existing sort: Analyzed first, then Alpha
+                    return b.is_analyzed - a.is_analyzed || a.ticker.localeCompare(b.ticker);
+                });
 
                 setCompanies(mapped);
             } catch (err) {
@@ -465,8 +476,8 @@ export default function InvestorDashboard() {
                                             </div>
 
                                             {/* Narrative / News Hybrid */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
-                                                <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-y-auto">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[500px]">
+                                                <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-y-auto custom-scrollbar overflow-x-hidden">
                                                     <h3 className="text-sm font-semibold text-gray-300 mb-3 sticky top-0 bg-transparent">AI Narrative Summary</h3>
                                                     <p className="text-gray-400 text-sm leading-relaxed">
                                                         {analysisData?.narrative_summary || "Loading narrative analysis..."}
@@ -474,8 +485,8 @@ export default function InvestorDashboard() {
                                                 </div>
                                                 <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-hidden flex flex-col">
                                                     <h3 className="text-sm font-semibold text-gray-300 mb-3">Relevant News</h3>
-                                                    <div className="flex-1 overflow-y-auto -mx-2 px-2">
-                                                        <LiveNewsFeed ticker={selectedCompany.ticker} limit={5} />
+                                                    <div className="flex-1 overflow-y-auto -mx-2 px-2 custom-scrollbar overflow-x-hidden">
+                                                        <LiveNewsFeed ticker={selectedCompany.ticker} limit={20} />
                                                     </div>
                                                 </div>
                                             </div>

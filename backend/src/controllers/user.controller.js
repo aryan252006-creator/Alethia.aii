@@ -24,11 +24,9 @@ const generateAccessAndRefereshTokens = async (userId) => {
 
 const registerUser = asyncHandler(async (req, res) => {
     // 1. Get user details from request body
-    // CHANGED: name -> username
     const { username, email, password, role, companyName } = req.body;
 
     // 2. Basic Validation
-    // CHANGED: Check username instead of name
     if (
         [username, email, password, role].some((field) => field?.trim() === "")
     ) {
@@ -43,7 +41,7 @@ const registerUser = asyncHandler(async (req, res) => {
     // 4. Check if user already exists
     // CHANGED: We now check if EITHER the email OR the username exists
     const existedUser = await User.findOne({
-        $or: [{ username }, { email }]
+        $or: [{ username: username.toLowerCase() }, { email: email.toLowerCase() }]
     });
 
     if (existedUser) {
@@ -52,8 +50,8 @@ const registerUser = asyncHandler(async (req, res) => {
 
     // 5. Create User Object
     const user = await User.create({
-        username: username.toLowerCase(), // CHANGED: Store lowercase for consistency
-        email,
+        username: username.toLowerCase().trim(),
+        email: email.toLowerCase().trim(),
         password,
         role,
         companyName: companyName ? companyName.trim() : ""
@@ -86,12 +84,11 @@ const loginUser = asyncHandler(async (req, res) => {
 
     // 3. Find User
     // We use $or to check both fields. 
-    // IMPORTANT: specific to your B2B schema, we ensure lowercase matching
     const user = await User.findOne({
         $or: [
-            { username: username?.toLowerCase() },
-            { email: email?.toLowerCase() }
-        ]
+            username ? { username: username.trim().toLowerCase() } : null,
+            email ? { email: email.trim().toLowerCase() } : null
+        ].filter(Boolean) // Remove nulls to avoid invalid query
     });
 
     if (!user) {
@@ -106,17 +103,15 @@ const loginUser = asyncHandler(async (req, res) => {
     }
 
     // 5. Generate Tokens
-    // Assumes this helper saves the Refresh Token to the DB automatically
     const { accessToken, refreshToken } = await generateAccessAndRefereshTokens(user._id);
 
     // 6. Fetch User for Response (sanitize sensitive fields)
-    // We explicitly exclude password and refreshToken from the network response
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken");
 
     // 7. Set Cookie Options
     const options = {
-        httpOnly: true, // Prevents XSS attacks (Client JS cannot read this)
-        secure: true // ALWAYS true in production (HTTPS only)
+        httpOnly: true,
+        secure: true
     };
 
     // 8. Send Response
@@ -128,7 +123,7 @@ const loginUser = asyncHandler(async (req, res) => {
             new ApiResponse(
                 200,
                 {
-                    user: loggedInUser, // Contains role & companyName
+                    user: loggedInUser,
                     accessToken,
                     refreshToken
                 },
@@ -140,10 +135,10 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
     // 1. Update Database: Remove the Refresh Token
     await User.findByIdAndUpdate(
-        req.user._id, // User ID comes from your 'verifyJWT' middleware
+        req.user._id,
         {
             $unset: {
-                refreshToken: 1 // Removes this field from the document
+                refreshToken: 1
             }
         },
         {

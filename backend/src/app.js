@@ -47,6 +47,8 @@ app.use("/api/v1/users", userRouter)
 app.use("/api/v1/chat", chatRouter)
 app.use("/api/v1/news", newsRouter)
 
+import { errorMiddleware } from "./middlewares/error.middleware.js"
+app.use(errorMiddleware)
 
 
 export { app }
