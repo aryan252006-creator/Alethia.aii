@@ -465,8 +465,8 @@ export default function InvestorDashboard() {
                                             </div>
 
                                             {/* Narrative / News Hybrid */}
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-64">
-                                                <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-y-auto">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 h-[500px]">
+                                                <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-y-auto custom-scrollbar overflow-x-hidden">
                                                     <h3 className="text-sm font-semibold text-gray-300 mb-3 sticky top-0 bg-transparent">AI Narrative Summary</h3>
                                                     <p className="text-gray-400 text-sm leading-relaxed">
                                                         {analysisData?.narrative_summary || "Loading narrative analysis..."}
@@ -474,8 +474,8 @@ export default function InvestorDashboard() {
                                                 </div>
                                                 <div className="bg-black/20 rounded-lg p-4 border border-white/5 overflow-hidden flex flex-col">
                                                     <h3 className="text-sm font-semibold text-gray-300 mb-3">Relevant News</h3>
-                                                    <div className="flex-1 overflow-y-auto -mx-2 px-2">
-                                                        <LiveNewsFeed ticker={selectedCompany.ticker} limit={5} />
+                                                    <div className="flex-1 overflow-y-auto -mx-2 px-2 custom-scrollbar overflow-x-hidden">
+                                                        <LiveNewsFeed ticker={selectedCompany.ticker} limit={20} />
                                                     </div>
                                                 </div>
                                             </div>

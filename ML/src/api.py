@@ -202,12 +202,23 @@ async def monitor_training_process():
                     print("ERROR: Training failed.")
                     is_retraining = False
         
+        
         await asyncio.sleep(5) # Check every 5 seconds
 
+def load_resources_blocking():
+    """Blocking function to load model and tokenizer."""
+    print("INFO: Loading resources in blocking thread...", flush=True)
+    
+    base_dir = os.getcwd()
+    checkpoint_dir = os.path.join(base_dir, "mlruns")
+    
     # Dynamic Checkpoint Finder
     def find_latest_checkpoint(mlruns_dir):
         best_ckpt = None
         best_time = 0
+        if not os.path.exists(mlruns_dir):
+            return None
+            
         for root, dirs, files in os.walk(mlruns_dir):
             for file in files:
                 if file.endswith(".ckpt"):
@@ -219,19 +230,21 @@ async def monitor_training_process():
         return best_ckpt
 
     checkpoint_path = find_latest_checkpoint(checkpoint_dir)
-    if hasattr(checkpoint_path, 'startswith') and checkpoint_path:
-            print(f"INFO: Detected latest checkpoint at {checkpoint_path}")
+    if checkpoint_path:
+        print(f"INFO: Detected latest checkpoint at {checkpoint_path}")
     else:
-            checkpoint_path = "" # Handle missing case
+        # Fallback to env var if dynamic search failed
+        env_ckpt = os.getenv("CHECKPOINT_PATH")
+        if env_ckpt and os.path.exists(env_ckpt):
+             checkpoint_path = env_ckpt
+             print(f"INFO: Using CHECKPOINT_PATH from env: {checkpoint_path}")
+        else:
+             print("WARNING: No checkpoint found. Model will be uninitialized.")
+             checkpoint_path = ""
 
     # 1. Initialize Model structure
     _temporal_dim = 8
     _tabular_dim = 10 
-    
-    # Needs market data metadata first? No, we can guess or use defaults if market_data loaded separately
-    # Actually, we should rely on market_data global if available, but here we are in thread.
-    
-    # Let's perform just MODEL loading here. Data loading is separate now.
     
     model_instance = FinancialIntelligencePipeline(
         temporal_dim=_temporal_dim,
@@ -241,7 +254,7 @@ async def monitor_training_process():
     
     # 2. Load Checkpoint
     _needs_retraining = True
-    if os.path.exists(checkpoint_path):
+    if checkpoint_path and os.path.exists(checkpoint_path):
         try:
             checkpoint = torch.load(checkpoint_path, map_location=torch.device('cpu'))
             load_state_with_strict_fix(model_instance, checkpoint['state_dict'])
@@ -253,11 +266,13 @@ async def monitor_training_process():
     
     # 3. Load Tokenizer
     print("INFO: Loading Tokenizer...", flush=True)
+    tokenizer_instance = None
     try:
         tokenizer_instance = AutoTokenizer.from_pretrained('yiyanghkust/finbert-pretrain')
     except Exception as e:
          print(f"WARNING: Tokenizer download failed: {e}. using fallback.", flush=True)
-         raise e
+         # In a real scenario, we might want to fail hard, or use a local fallback
+         # raise e
     
     return model_instance, tokenizer_instance, _needs_retraining
 
@@ -386,8 +401,8 @@ async def get_prediction(ticker: str):
                     return yf_ticker.history(period="3mo")
 
                 try:
-                    # Enforce strict 3-second timeout to prevent service hang
-                    hist = await asyncio.wait_for(asyncio.to_thread(fetch_history_sync), timeout=3.0)
+                    # Enforce strict 15-second timeout to prevent service hang (Increased from 3s)
+                    hist = await asyncio.wait_for(asyncio.to_thread(fetch_history_sync), timeout=15.0)
                 except asyncio.TimeoutError:
                     print(f"WARNING: History fetch timed out for {ticker}. Using synthetic data.", flush=True)
                     hist = pd.DataFrame() # Trigger synthetic generation below
