@@ -4,6 +4,7 @@ import cookieParser from "cookie-parser"
 import userRouter from './routes/user.routes.js'
 import chatRouter from './routes/chat.routes.js'
 import newsRouter from './routes/news.routes.js'
+import extensionRouter from './routes/extension.routes.js'
 
 
 const app = express()
@@ -19,6 +20,11 @@ app.use(cors({
             'http://localhost:3001', // Docker Frontend
             process.env.CORS_ORIGIN // Environment variable
         ];
+
+        // Allow Chrome extension origins (chrome-extension://)
+        if (origin && origin.startsWith('chrome-extension://')) {
+            return callback(null, true);
+        }
 
         if (allowedOrigins.indexOf(origin) !== -1 || process.env.CORS_ORIGIN === "*") {
             // Note: if CORS_ORIGIN is *, credentials: true will still fail in browser for *
@@ -37,8 +43,8 @@ app.use(cors({
     credentials: true
 })) //to accept cookies from frontend
 
-app.use(express.json({ limit: "16kb" })) //to parse json data from request body
-app.use(express.urlencoded({ extended: true, limit: "16kb" }))
+app.use(express.json({ limit: "1mb" })) //to parse json data from request body (increased for extension)
+app.use(express.urlencoded({ extended: true, limit: "1mb" }))
 app.use(express.static("public")) //to serve static files from the public directory
 app.use(cookieParser()) //to parse cookies from request headers
 
@@ -46,6 +52,7 @@ app.use(cookieParser()) //to parse cookies from request headers
 app.use("/api/v1/users", userRouter)
 app.use("/api/v1/chat", chatRouter)
 app.use("/api/v1/news", newsRouter)
+app.use("/api", extensionRouter)
 
 import { errorMiddleware } from "./middlewares/error.middleware.js"
 app.use(errorMiddleware)
